@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysioScript - Prescription Generation Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .prescription-template {
+            background: white;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .doctor-header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+            color: white;
+            position: relative;
+        }
+        
+        .doctor-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+        }
+        
+        .patient-info-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-left: 6px solid #3b82f6;
+            position: relative;
+        }
+        
+        .prescription-content {
+            min-height: 400px;
+            background: #ffffff;
+        }
+        
+        .section-header {
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        .section-header::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: #06b6d4;
+        }
+        
+        .signature-section {
+            border-top: 3px solid #e5e7eb;
+            margin-top: 30px;
+            padding-top: 20px;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        }
+        
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .patient-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .patient-card:hover {
+            border-left-color: #3b82f6;
+            transform: translateX(5px);
+        }
+        
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .medical-icon {
+            background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-stethoscope medical-icon mr-3"></i>
+                PhysioScript
+            </h1>
+            <p class="text-gray-600 text-lg">Professional Prescription Management System for Physiotherapists</p>
+        </div>
+
+        <!-- Main Navigation -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8">
+            <button onclick="showSection('newPrescription')" 
+                    class="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition-all">
+                <i class="fas fa-prescription-bottle"></i>
+                Generate Prescription
+            </button>
+            <button onclick="showSection('patientHistory')" 
+                    class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition-all">
+                <i class="fas fa-history"></i>
+                Check History
+            </button>
+        </div>
+
+        <!-- New Prescription Section -->
+        <div id="newPrescriptionSection" class="section">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-user-plus text-blue-600"></i>
+                    Patient Information
+                </h2>
+                
+                <form id="patientForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Patient Name *</label>
+                        <input type="text" id="patientName" required 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Age *</label>
+                        <input type="number" id="patientAge" required min="1" max="120"
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                        <select id="patientGender" required 
+                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
+                        <input type="tel" id="patientContact" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                        <textarea id="patientAddress" rows="2" 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chief Complaint *</label>
+                        <textarea id="chiefComplaint" rows="2" required 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Describe the main symptoms or issues"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Clinical Findings</label>
+                        <textarea id="clinicalFindings" rows="3" 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Assessment and examination findings"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Treatment Plan *</label>
+                        <textarea id="treatmentPlan" rows="4" required 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Prescribed exercises, therapy modalities, and treatment recommendations"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Duration of Treatment</label>
+                        <input type="text" id="treatmentDuration" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                               placeholder="e.g., 2-3 weeks, 6 sessions">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Follow-up Date</label>
+                        <input type="date" id="followUpDate" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                        <textarea id="additionalNotes" rows="2" 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Any additional instructions or observations"></textarea>
+                    </div>
+                </form>
+                
+                <div class="flex flex-wrap gap-4 mt-6">
+                    <button onclick="generatePrescription()" 
+                            class="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-save"></i>
+                        Save & Generate Prescription
+                    </button>
+                    <button onclick="clearForm()" 
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-eraser"></i>
+                        Clear Form
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient History Section -->
+        <div id="patientHistorySection" class="section hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-search text-green-600"></i>
+                    Patient History
+                </h2>
+                
+                <div class="flex flex-wrap gap-4 mb-6">
+                    <div class="flex-1 min-w-64">
+                        <input type="text" id="searchPatientId" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                               placeholder="Enter Patient ID (e.g., PT-001)">
+                    </div>
+                    <button onclick="searchPatient()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-search"></i>
+                        Search Patient
+                    </button>
+                    <button onclick="loadAllPatients()" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-list"></i>
+                        Load All Patients
+                    </button>
+                </div>
+                
+                <div id="searchResults" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Prescription Display Section -->
+        <div id="prescriptionSection" class="section hidden">
+            <div class="prescription-template max-w-4xl mx-auto" id="prescriptionTemplate">
+                <!-- Doctor Header -->
+                <div class="doctor-header p-8 relative">
+                    <div class="text-center relative z-10">
+                        <div class="flex items-center justify-center mb-4">
+                            <div class="bg-white bg-opacity-20 p-4 rounded-full mr-4">
+                                <i class="fas fa-user-md text-3xl"></i>
+                            </div>
+                            <div class="text-left">
+                                <h1 class="text-4xl font-bold mb-1">Dr. Sarah Johnson</h1>
+                                <p class="text-xl mb-1 opacity-95">Physiotherapist & Rehabilitation Specialist</p>
+                                <p class="text-sm opacity-90">DPT, MS in Sports Medicine</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm bg-white bg-opacity-10 rounded-lg p-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>123 Health Center, Medical District</span>
+                            </div>
+                            <div class="flex items-center justify-center gap-2">
+                                <i class="fas fa-phone"></i>
+                                <span>+1 (555) 123-4567</span>
+                            </div>
+                            <div class="flex items-center justify-center gap-2">
+                                <i class="fas fa-certificate"></i>
+                                <span>License: PT-2024-5678</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Information -->
+                <div class="patient-info-section p-6">
+                    <h2 class="section-header text-xl font-bold text-gray-800 mb-4">Patient Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-id-badge text-blue-600 w-5"></i>
+                                <span><strong>Patient ID:</strong> <span id="displayPatientId" class="font-mono"></span></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-user text-blue-600 w-5"></i>
+                                <span><strong>Name:</strong> <span id="displayPatientName"></span></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-birthday-cake text-blue-600 w-5"></i>
+                                <span><strong>Age:</strong> <span id="displayPatientAge"></span> years</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-venus-mars text-blue-600 w-5"></i>
+                                <span><strong>Gender:</strong> <span id="displayPatientGender"></span></span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-phone text-blue-600 w-5"></i>
+                                <span><strong>Contact:</strong> <span id="displayPatientContact"></span></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-calendar text-blue-600 w-5"></i>
+                                <span><strong>Date:</strong> <span id="displayDate"></span></span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-home text-blue-600 w-5 mt-1"></i>
+                                <span><strong>Address:</strong> <span id="displayPatientAddress"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prescription Content -->
+                <div class="prescription-content p-6">
+                    <div class="mb-8">
+                        <h3 class="section-header text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-clipboard-list text-blue-600"></i>
+                            Chief Complaint
+                        </h3>
+                        <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-600">
+                            <p class="text-gray-700" id="displayChiefComplaint"></p>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="section-header text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-stethoscope text-blue-600"></i>
+                            Clinical Findings
+                        </h3>
+                        <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-green-600">
+                            <p class="text-gray-700" id="displayClinicalFindings"></p>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="section-header text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-prescription text-blue-600"></i>
+                            Treatment Plan
+                        </h3>
+                        <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
+                            <div class="text-gray-700 whitespace-pre-line" id="displayTreatmentPlan"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h3 class="section-header text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-clock text-blue-600"></i>
+                                Duration
+                            </h3>
+                            <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-600">
+                                <p class="text-gray-700 font-medium" id="displayTreatmentDuration"></p>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="section-header text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-calendar-check text-blue-600"></i>
+                                Follow-up
+                            </h3>
+                            <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-600">
+                                <p class="text-gray-700 font-medium" id="displayFollowUpDate"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="section-header text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-sticky-note text-blue-600"></i>
+                            Additional Notes
+                        </h3>
+                        <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-600">
+                            <p class="text-gray-700" id="displayAdditionalNotes"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signature Section -->
+                <div class="signature-section p-6 rounded-b-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-exclamation-triangle text-orange-600"></i>
+                                Important Instructions
+                            </h4>
+                            <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                                <ul class="text-sm text-gray-700 space-y-2">
+                                    <li class="flex items-center gap-2">
+                                        <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                        Follow the prescribed exercises regularly
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                        Apply ice/heat as directed
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                        Contact immediately if symptoms worsen
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                        Attend all scheduled appointments
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-white p-6 rounded-lg border-2 border-gray-300 shadow-lg">
+                                <div class="border-b-2 border-gray-400 pb-4 mb-4">
+                                    <div class="h-12 flex items-end justify-center">
+                                        <span class="text-2xl font-bold text-blue-600">Dr. Sarah Johnson</span>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 font-medium">Physiotherapist & Rehabilitation Specialist</p>
+                                <p class="text-xs text-gray-500 mt-1">License No: PT-2024-5678</p>
+                                <p class="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
+                                    <i class="fas fa-calendar text-blue-600"></i>
+                                    Date: <span id="signatureDate"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center gap-4 mt-6 no-print">
+                <button onclick="generatePDF()" 
+                        class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-file-pdf"></i>
+                    Download PDF
+                </button>
+                <button onclick="showSection('newPrescription')" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-plus"></i>
+                    New Prescription
+                </button>
+                <button onclick="showSection('patientHistory')" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to History
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Patient Modal -->
+        <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Edit Patient Information</h2>
+                        <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="editPatientForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <input type="hidden" id="editPatientId">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Patient Name *</label>
+                            <input type="text" id="editPatientName" required 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Age *</label>
+                            <input type="number" id="editPatientAge" required min="1" max="120"
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                            <select id="editPatientGender" required 
+                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
+                            <input type="tel" id="editPatientContact" 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                            <textarea id="editPatientAddress" rows="2" 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Chief Complaint *</label>
+                            <textarea id="editChiefComplaint" rows="2" required 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Clinical Findings</label>
+                            <textarea id="editClinicalFindings" rows="3" 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Treatment Plan *</label>
+                            <textarea id="editTreatmentPlan" rows="4" required 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Duration of Treatment</label>
+                            <input type="text" id="editTreatmentDuration" 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Follow-up Date</label>
+                            <input type="date" id="editFollowUpDate" 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                            <textarea id="editAdditionalNotes" rows="2" 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                    </form>
+                    
+                    <div class="flex flex-wrap gap-4 mt-6">
+                        <button onclick="updatePatient()" 
+                                class="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-save"></i>
+                            Update & Generate Prescription
+                        </button>
+                        <button onclick="closeEditModal()" 
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg text-center shadow-xl">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-3xl mb-4"></i>
+                <p class="text-gray-700">Processing...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Global variables
+        let currentPatientId = '';
+        let patientCounter = 1;
+        
+        // Google Sheets configuration
+        const SHEET_ID = '1DO9x6Xn9W2gwfNBi5fCbYj_cpuv460wWenDaU3Mu6OQ';
+        const API_KEY = 'AIzaSyD9k_24dmAnCTjl3qgvy17XsL2Yct38fdE';
+        const SHEET_RANGE = 'Sheet1!A:M';
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('newPrescription');
+            loadPatientCounter();
+        });
+        
+        // Section management
+        function showSection(sectionName) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => section.classList.add('hidden'));
+            
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+        }
+        
+        // Generate unique patient ID
+        function generatePatientId() {
+            const id = `PT-${String(patientCounter).padStart(3, '0')}`;
+            patientCounter++;
+            localStorage.setItem('patientCounter', patientCounter);
+            return id;
+        }
+        
+        // Load patient counter from localStorage
+        function loadPatientCounter() {
+            const savedCounter = localStorage.getItem('patientCounter');
+            if (savedCounter) {
+                patientCounter = parseInt(savedCounter);
+            }
+        }
+        
+        // Clear form
+        function clearForm() {
+            document.getElementById('patientForm').reset();
+        }
+        
+        // Generate prescription
+        function generatePrescription() {
+            if (!validateForm()) return;
+            
+            showLoading(true);
+            
+            const patientData = collectFormData();
+            patientData.id = generatePatientId();
+            patientData.createdDate = new Date().toISOString().split('T')[0];
+            patientData.lastUpdated = new Date().toISOString();
+            
+            currentPatientId = patientData.id;
+            
+            // Save to localStorage (fallback)
+            saveToLocalStorage(patientData);
+            
+            // Try to save to Google Sheets
+            saveToGoogleSheets(patientData).then(() => {
+                displayPrescription(patientData);
+                showLoading(false);
+                showSection('prescription');
+            }).catch(error => {
+                console.error('Failed to save to Google Sheets:', error);
+                displayPrescription(patientData);
+                showLoading(false);
+                showSection('prescription');
+                showNotification('Data saved locally. Google Sheets integration requires API key setup.', 'warning');
+            });
+        }
+        
+        // Validate form
+        function validateForm() {
+            const required = ['patientName', 'patientAge', 'patientGender', 'chiefComplaint', 'treatmentPlan'];
+            for (let field of required) {
+                const element = document.getElementById(field);
+                if (!element.value.trim()) {
+                    showNotification(`Please fill in ${field.replace('patient', '').replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
+                    element.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Collect form data
+        function collectFormData() {
+            return {
+                name: document.getElementById('patientName').value.trim(),
+                age: document.getElementById('patientAge').value,
+                gender: document.getElementById('patientGender').value,
+                contact: document.getElementById('patientContact').value.trim(),
+                address: document.getElementById('patientAddress').value.trim(),
+                chiefComplaint: document.getElementById('chiefComplaint').value.trim(),
+                clinicalFindings: document.getElementById('clinicalFindings').value.trim(),
+                treatmentPlan: document.getElementById('treatmentPlan').value.trim(),
+                treatmentDuration: document.getElementById('treatmentDuration').value.trim(),
+                followUpDate: document.getElementById('followUpDate').value,
+                additionalNotes: document.getElementById('additionalNotes').value.trim()
+            };
+        }
+        
+        // Display prescription
+        function displayPrescription(data) {
+            const currentDate = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            document.getElementById('displayPatientId').textContent = data.id;
+            document.getElementById('displayPatientName').textContent = data.name;
+            document.getElementById('displayPatientAge').textContent = data.age;
+            document.getElementById('displayPatientGender').textContent = data.gender;
+            document.getElementById('displayPatientContact').textContent = data.contact || 'Not provided';
+            document.getElementById('displayPatientAddress').textContent = data.address || 'Not provided';
+            document.getElementById('displayDate').textContent = currentDate;
+            document.getElementById('displayChiefComplaint').textContent = data.chiefComplaint;
+            document.getElementById('displayClinicalFindings').textContent = data.clinicalFindings || 'Not specified';
+            
+            // Format treatment plan with bullet points
+            const treatmentPlan = data.treatmentPlan.split('\n').map(line => 
+                line.trim() ? `• ${line.trim()}` : ''
+            ).join('\n');
+            document.getElementById('displayTreatmentPlan').textContent = treatmentPlan;
+            
+            document.getElementById('displayTreatmentDuration').textContent = data.treatmentDuration || 'As needed';
+            
+            const followUpDate = data.followUpDate ? 
+                new Date(data.followUpDate).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : 'As needed';
+            document.getElementById('displayFollowUpDate').textContent = followUpDate;
+            
+            document.getElementById('displayAdditionalNotes').textContent = data.additionalNotes || 'None';
+            document.getElementById('signatureDate').textContent = currentDate;
+        }
+        
+        // Enhanced PDF generation with professional medical design
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Constants
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 15;
+            const contentWidth = pageWidth - 2 * margin;
+            let y = margin;
+
+            // Color scheme
+            const colors = {
+                primary: [30, 64, 175],      // Blue-800
+                secondary: [59, 130, 246],   // Blue-500
+                accent: [6, 182, 212],       // Cyan-500
+                success: [34, 197, 94],      // Green-500
+                warning: [245, 158, 11],     // Amber-500
+                danger: [239, 68, 68],       // Red-500
+                gray: [107, 114, 128],       // Gray-500
+                lightGray: [243, 244, 246],  // Gray-100
+                darkGray: [75, 85, 99]       // Gray-600
+            };
+
+            // Professional header with gradient effect
+            doc.setFillColor(...colors.primary);
+            doc.rect(0, 0, pageWidth, 50, 'F');
+            
+            // Header accent line
+            doc.setFillColor(...colors.accent);
+            doc.rect(0, 50, pageWidth, 3, 'F');
+
+            // Medical cross icon (simple representation)
+            doc.setFillColor(255, 255, 255);
+            doc.circle(margin + 15, 25, 12, 'F');
+            doc.setFillColor(...colors.primary);
+            doc.rect(margin + 13, 18, 4, 14, 'F');
+            doc.rect(margin + 10, 23, 10, 4, 'F');
+
+            // Doctor information
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(24);
+            doc.setTextColor(255, 255, 255);
+            doc.text('Dr. Sarah Johnson', margin + 35, y + 12);
+            
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Physiotherapist & Rehabilitation Specialist', margin + 35, y + 19);
+            
+            doc.setFontSize(10);
+            doc.text('DPT, MS in Sports Medicine', margin + 35, y + 25);
+            
+            // Contact information in white boxes
+            doc.setFillColor(255, 255, 255);
+            doc.setFillColor(255, 255, 255, 0.2);
+            doc.rect(margin + 35, y + 30, contentWidth - 20, 12, 'F');
+            
+            doc.setFontSize(9);
+            doc.text('📍 123 Health Center, Medical District, City 12345', margin + 37, y + 35);
+            doc.text('📞 +1 (555) 123-4567  ✉ dr.johnson@healthcenter.com  🏥 License: PT-2024-5678', margin + 37, y + 39);
+
+            y += 58;
+
+            // Patient information section with professional styling
+            doc.setFillColor(...colors.lightGray);
+            doc.rect(margin, y, contentWidth, 40, 'F');
+            
+            // Blue accent border
+            doc.setFillColor(...colors.secondary);
+            doc.rect(margin, y, 4, 40, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(...colors.primary);
+            doc.text('PATIENT INFORMATION', margin + 8, y + 8);
+
+            // Patient details in organized layout
+            const patientData = {
+                id: document.getElementById('displayPatientId').textContent,
+                name: document.getElementById('displayPatientName').textContent,
+                age: document.getElementById('displayPatientAge').textContent,
+                gender: document.getElementById('displayPatientGender').textContent,
+                contact: document.getElementById('displayPatientContact').textContent,
+                address: document.getElementById('displayPatientAddress').textContent,
+                date: document.getElementById('displayDate').textContent
+            };
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.darkGray);
+
+            // Left column
+            doc.text(`Patient ID: ${patientData.id}`, margin + 8, y + 16);
+            doc.text(`Name: ${patientData.name}`, margin + 8, y + 21);
+            doc.text(`Age: ${patientData.age} years`, margin + 8, y + 26);
+            doc.text(`Gender: ${patientData.gender}`, margin + 8, y + 31);
+
+            // Right column
+            doc.text(`Contact: ${patientData.contact}`, margin + 105, y + 16);
+            doc.text(`Date: ${patientData.date}`, margin + 105, y + 21);
+            const addressLines = doc.splitTextToSize(`Address: ${patientData.address}`, 80);
+            doc.text(addressLines, margin + 105, y + 26);
+
+            y += 50;
+
+            // Medical content sections with enhanced styling
+            const addMedicalSection = (title, content, color, icon) => {
+                if (y > pageHeight - 60) {
+                    doc.addPage();
+                    y = margin;
+                }
+
+                // Section header with icon and color coding
+                doc.setFillColor(...color);
+                doc.rect(margin, y, contentWidth, 8, 'F');
+                
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(255, 255, 255);
+                doc.text(`${icon} ${title.toUpperCase()}`, margin + 4, y + 5.5);
+
+                // Content area with subtle background
+                doc.setFillColor(248, 250, 252);
+                doc.rect(margin, y + 8, contentWidth, 20, 'F');
+                
+                // Content border
+                doc.setDrawColor(...color);
+                doc.setLineWidth(0.5);
+                doc.line(margin, y + 8, margin, y + 28);
+                doc.line(margin + 2, y + 8, margin + 2, y + 28);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(...colors.darkGray);
+
+                if (title === 'Treatment Plan') {
+                    const lines = content.split('\n').filter(line => line.trim());
+                    lines.forEach((line, index) => {
+                        doc.text(line, margin + 6, y + 14 + index * 4);
+                    });
+                    y += Math.max(28, lines.length * 4 + 16);
+                } else {
+                    const splitText = doc.splitTextToSize(content, contentWidth - 12);
+                    doc.text(splitText, margin + 6, y + 14);
+                    y += Math.max(28, splitText.length * 4 + 16);
+                }
+            };
+
+            // Medical sections with color coding
+            addMedicalSection(
+                'Chief Complaint',
+                document.getElementById('displayChiefComplaint').textContent,
+                colors.danger,
+                '📋'
+            );
+
+            addMedicalSection(
+                'Clinical Findings',
+                document.getElementById('displayClinicalFindings').textContent || 'Not specified',
+                colors.warning,
+                '🔍'
+            );
+
+            addMedicalSection(
+                'Treatment Plan',
+                document.getElementById('displayTreatmentPlan').textContent,
+                colors.primary,
+                '💊'
+            );
+
+            // Duration and Follow-up in side-by-side layout
+            if (y > pageHeight - 80) {
+                doc.addPage();
+                y = margin;
+            }
+
+            // Duration (left side)
+            doc.setFillColor(...colors.success);
+            doc.rect(margin, y, (contentWidth / 2) - 2, 8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.text('⏱ DURATION', margin + 4, y + 5.5);
+
+            doc.setFillColor(248, 250, 252);
+            doc.rect(margin, y + 8, (contentWidth / 2) - 2, 15, 'F');
+            doc.setDrawColor(...colors.success);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y + 8, margin, y + 23);
+            doc.line(margin + 2, y + 8, margin + 2, y + 23);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.darkGray);
+            doc.text(document.getElementById('displayTreatmentDuration').textContent || 'As needed', margin + 6, y + 17);
+
+            // Follow-up (right side)
+            doc.setFillColor(...colors.accent);
+            doc.rect(margin + (contentWidth / 2) + 2, y, (contentWidth / 2) - 2, 8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.text('📅 FOLLOW-UP', margin + (contentWidth / 2) + 6, y + 5.5);
+
+            doc.setFillColor(248, 250, 252);
+            doc.rect(margin + (contentWidth / 2) + 2, y + 8, (contentWidth / 2) - 2, 15, 'F');
+            doc.setDrawColor(...colors.accent);
+            doc.setLineWidth(0.5);
+            doc.line(margin + (contentWidth / 2) + 2, y + 8, margin + (contentWidth / 2) + 2, y + 23);
+            doc.line(margin + (contentWidth / 2) + 4, y + 8, margin + (contentWidth / 2) + 4, y + 23);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.darkGray);
+            doc.text(document.getElementById('displayFollowUpDate').textContent || 'As needed', margin + (contentWidth / 2) + 8, y + 17);
+
+            y += 30;
+
+            // Additional notes
+            addMedicalSection(
+                'Additional Notes',
+                document.getElementById('displayAdditionalNotes').textContent || 'None',
+                colors.secondary,
+                '📝'
+            );
+
+            // Professional footer section
+            if (y > pageHeight - 80) {
+                doc.addPage();
+                y = margin;
+            }
+
+            // Important instructions with medical styling
+            doc.setFillColor(...colors.warning);
+            doc.rect(margin, y, contentWidth, 8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.text('⚠ IMPORTANT INSTRUCTIONS', margin + 4, y + 5.5);
+
+            doc.setFillColor(255, 252, 235);
+            doc.rect(margin, y + 8, contentWidth * 0.6, 25, 'F');
+            doc.setDrawColor(...colors.warning);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y + 8, margin, y + 33);
+            doc.line(margin + 2, y + 8, margin + 2, y + 33);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(...colors.darkGray);
+            const instructions = [
+                '• Follow the prescribed exercises regularly',
+                '• Apply ice/heat as directed',
+                '• Contact immediately if symptoms worsen',
+                '• Attend all scheduled appointments'
+            ];
+
+            instructions.forEach((instruction, index) => {
+                doc.text(instruction, margin + 6, y + 15 + index * 4);
+            });
+
+            // Professional signature section
+            const signatureX = margin + contentWidth * 0.62;
+            doc.setFillColor(255, 255, 255);
+            doc.rect(signatureX, y + 8, contentWidth * 0.38, 25, 'F');
+            doc.setDrawColor(...colors.primary);
+            doc.setLineWidth(1);
+            doc.rect(signatureX, y + 8, contentWidth * 0.38, 25);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(...colors.primary);
+            doc.text('Dr. Sarah Johnson', signatureX + 4, y + 16);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(...colors.gray);
+            doc.text('Physiotherapist & Rehabilitation Specialist', signatureX + 4, y + 21);
+            doc.text('License No: PT-2024-5678', signatureX + 4, y + 25);
+            doc.text(`Date: ${document.getElementById('signatureDate').textContent}`, signatureX + 4, y + 29);
+
+            // Professional footer
+            doc.setFillColor(...colors.lightGray);
+            doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(...colors.gray);
+            doc.text('Generated by PhysioScript - Professional Prescription Management System', margin, pageHeight - 8);
+            doc.text('This prescription is valid only with the doctor\'s signature and official seal.', margin, pageHeight - 4);
+
+            // Confidentiality notice
+            doc.text('CONFIDENTIAL MEDICAL RECORD - For authorized personnel only', pageWidth - margin - 80, pageHeight - 8);
+
+            // Save the PDF
+            const patientId = document.getElementById('displayPatientId').textContent;
+            doc.save(`PhysioScript_Prescription_${patientId}_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+        
+        // Save to localStorage
+        function saveToLocalStorage(data) {
+            let patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const existingIndex = patients.findIndex(p => p.id === data.id);
+            
+            if (existingIndex >= 0) {
+                patients[existingIndex] = data;
+            } else {
+                patients.push(data);
+            }
+            
+            localStorage.setItem('patients', JSON.stringify(patients));
+        }
+        
+        // Save to Google Sheets
+        async function saveToGoogleSheets(data) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (API_KEY === 'YOUR_GOOGLE_SHEETS_API_KEY') {
+                        reject(new Error('API key not configured'));
+                    } else {
+                        resolve();
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Search patient
+        function searchPatient() {
+            const patientId = document.getElementById('searchPatientId').value.trim();
+            if (!patientId) {
+                showNotification('Please enter a patient ID', 'warning');
+                return;
+            }
+            
+            showLoading(true);
+            
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients.find(p => p.id.toLowerCase() === patientId.toLowerCase());
+            
+            if (patient) {
+                displaySearchResults([patient]);
+            } else {
+                displaySearchResults([]);
+                showNotification('Patient not found', 'error');
+            }
+            
+            showLoading(false);
+        }
+        
+        // Load all patients
+        function loadAllPatients() {
+            showLoading(true);
+            
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            displaySearchResults(patients);
+            
+            showLoading(false);
+        }
+        
+        // Display search results
+        function displaySearchResults(patients) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (patients.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-user-slash text-4xl mb-4"></i>
+                        <p>No patients found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsContainer.innerHTML = patients.map(patient => `
+                <div class="patient-card bg-gray-50 p-4 rounded-lg border">
+                    <div class="flex flex-wrap justify-between items-start gap-4">
+                        <div class="flex-1 min-w-64">
+                            <h3 class="font-semibold text-lg text-gray-800">${patient.name}</h3>
+                            <p class="text-gray-600">ID: ${patient.id} | Age: ${patient.age} | Gender: ${patient.gender}</p>
+                            <p class="text-gray-600">Contact: ${patient.contact || 'Not provided'}</p>
+                            <p class="text-sm text-gray-500">Created: ${patient.createdDate || 'Unknown'}</p>
+                            <p class="text-sm text-gray-700 mt-2"><strong>Chief Complaint:</strong> ${patient.chiefComplaint}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editPatient('${patient.id}')" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                            <button onclick="viewPrescription('${patient.id}')" 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Edit patient
+        function editPatient(patientId) {
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients.find(p => p.id === patientId);
+            
+            if (!patient) {
+                showNotification('Patient not found', 'error');
+                return;
+            }
+            
+            document.getElementById('editPatientId').value = patient.id;
+            document.getElementById('editPatientName').value = patient.name;
+            document.getElementById('editPatientAge').value = patient.age;
+            document.getElementById('editPatientGender').value = patient.gender;
+            document.getElementById('editPatientContact').value = patient.contact || '';
+            document.getElementById('editPatientAddress').value = patient.address || '';
+            document.getElementById('editChiefComplaint').value = patient.chiefComplaint;
+            document.getElementById('editClinicalFindings').value = patient.clinicalFindings || '';
+            document.getElementById('editTreatmentPlan').value = patient.treatmentPlan;
+            document.getElementById('editTreatmentDuration').value = patient.treatmentDuration || '';
+            document.getElementById('editFollowUpDate').value = patient.followUpDate || '';
+            document.getElementById('editAdditionalNotes').value = patient.additionalNotes || '';
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        
+        // Close edit modal
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+        
+        // Update patient
+        function updatePatient() {
+            if (!validateEditForm()) return;
+            
+            showLoading(true);
+            
+            const patientData = {
+                id: document.getElementById('editPatientId').value,
+                name: document.getElementById('editPatientName').value.trim(),
+                age: document.getElementById('editPatientAge').value,
+                gender: document.getElementById('editPatientGender').value,
+                contact: document.getElementById('editPatientContact').value.trim(),
+                address: document.getElementById('editPatientAddress').value.trim(),
+                chiefComplaint: document.getElementById('editChiefComplaint').value.trim(),
+                clinicalFindings: document.getElementById('editClinicalFindings').value.trim(),
+                treatmentPlan: document.getElementById('editTreatmentPlan').value.trim(),
+                treatmentDuration: document.getElementById('editTreatmentDuration').value.trim(),
+                followUpDate: document.getElementById('editFollowUpDate').value,
+                additionalNotes: document.getElementById('editAdditionalNotes').value.trim(),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const originalPatient = patients.find(p => p.id === patientData.id);
+            if (originalPatient) {
+                patientData.createdDate = originalPatient.createdDate;
+            }
+            
+            currentPatientId = patientData.id;
+            
+            saveToLocalStorage(patientData);
+            
+            closeEditModal();
+            displayPrescription(patientData);
+            showLoading(false);
+            showSection('prescription');
+            showNotification('Patient information updated successfully', 'success');
+        }
+        
+        // Validate edit form
+        function validateEditForm() {
+            const required = ['editPatientName', 'editPatientAge', 'editPatientGender', 'editChiefComplaint', 'editTreatmentPlan'];
+            for (let field of required) {
+                const element = document.getElementById(field);
+                if (!element.value.trim()) {
+                    showNotification(`Please fill in ${field.replace('edit', '').replace('patient', '').replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
+                    element.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // View prescription
+        function viewPrescription(patientId) {
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients.find(p => p.id === patientId);
+            
+            if (patient) {
+                currentPatientId = patientId;
+                displayPrescription(patient);
+                showSection('prescription');
+            } else {
+                showNotification('Patient not found', 'error');
+            }
+        }
+        
+        // Show/hide loading spinner
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            if (show) {
+                spinner.classList.remove('hidden');
+            } else {
+                spinner.classList.add('hidden');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white font-medium shadow-lg ${
+                type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' :
+                type === 'warning' ? 'bg-yellow-600' :
+                'bg-blue-600'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        'fa-info-circle'
+                    }"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Close modal on outside click
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+</html>
