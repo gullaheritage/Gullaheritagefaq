@@ -38,26 +38,6 @@
             padding-top: 20px;
         }
         
-         {
-            body * {
-                visibility: hidden;
-            }
-            .prescription-template, .prescription-template * {
-                visibility: visible;
-            }
-            .prescription-template {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                box-shadow: none;
-                border: none;
-            }
-            .no-print {
-                display: none !important;
-            }
-        }
-        
         .form-input:focus {
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -260,7 +240,7 @@
                         <p class="text-sm opacity-90">DPT, MS in Sports Medicine</p>
                         <div class="mt-3 text-sm">
                             <p><i class="fas fa-map-marker-alt mr-2"></i>123 Health Center, Medical District, City 12345</p>
-                            <p><i class="fas fa-phone mr-2"></i>+1 (555) 123-4567 | <i class="fas fa-envelope mr-2"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e98d9bc79a889b8881a99981909a80868a8c879d8c9bc78a8684">[email&#160;protected]</a></p>
+                            <p><i class="fas fa-phone mr-2"></i>+1 (555) 123-4567 | <i class="fas fa-envelope mr-2"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a98d9bc79a889b8881a99981909a80868a8c879d8c9bc78a8684">[email protected]</a></p>
                             <p><i class="fas fa-certificate mr-2"></i>License No: PT-2024-5678</p>
                         </div>
                     </div>
@@ -341,10 +321,10 @@
             </div>
 
             <div class="flex justify-center gap-4 mt-6 no-print">
-                <button onclick="printPrescription()" 
+                <button onclick="generatePDF()" 
                         class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
-                    <i class="fas fa-print"></i>
-                    Print Prescription
+                    <i class="fas fa-file-pdf"></i>
+                    Download PDF
                 </button>
                 <button onclick="showSection('newPrescription')" 
                         class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
@@ -470,14 +450,16 @@
         </div>
     </div>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+    <script>
         // Global variables
         let currentPatientId = '';
         let patientCounter = 1;
         
         // Google Sheets configuration
         const SHEET_ID = '1DO9x6Xn9W2gwfNBi5fCbYj_cpuv460wWenDaU3Mu6OQ';
-        const API_KEY = 'AIzaSyD9k_24dmAnCTjl3qgvy17XsL2Yct38fdE'; // Replace with your API key
+        const API_KEY = 'AIzaSyD9k_24dmAnCTjl3qgvy17XsL2Yct38fdE';
         const SHEET_RANGE = 'Sheet1!A:M';
         
         // Initialize the application
@@ -597,8 +579,8 @@
             // Format treatment plan with bullet points
             const treatmentPlan = data.treatmentPlan.split('\n').map(line => 
                 line.trim() ? `• ${line.trim()}` : ''
-            ).join('<br>');
-            document.getElementById('displayTreatmentPlan').innerHTML = treatmentPlan;
+            ).join('\n');
+            document.getElementById('displayTreatmentPlan').innerText = treatmentPlan;
             
             document.getElementById('displayTreatmentDuration').textContent = data.treatmentDuration || 'As needed';
             
@@ -614,9 +596,157 @@
             document.getElementById('signatureDate').textContent = currentDate;
         }
         
-        // Print prescription
-        function printPrescription() {
-            window.print();
+        // Generate PDF
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Page Setup
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 15;
+            const contentWidth = pageWidth - 2 * margin;
+            let y = margin;
+
+            // Header Section with Logo Placeholder
+            doc.setFillColor(245, 245, 245);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.setDrawColor(59, 130, 246);
+            doc.setLineWidth(0.5);
+            doc.line(margin, 40, pageWidth - margin, 40);
+
+            // Logo Placeholder (Rectangle - replace with actual logo image if available)
+            doc.setFillColor(200, 200, 200);
+            doc.rect(margin, y + 5, 30, 20, 'F');
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Logo', margin + 15, y + 15, { align: 'center' });
+
+            // Header Text
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.setTextColor(59, 130, 246);
+            doc.text('PhysioScript Prescription', margin + 40, y + 10);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(50, 50, 50);
+            doc.text('Dr. Sarah Johnson, DPT, MS in Sports Medicine', margin + 40, y + 16);
+            doc.text('Physiotherapist & Rehabilitation Specialist', margin + 40, y + 21);
+            doc.text('123 Health Center, Medical District, City 12345', margin + 40, y + 26);
+            doc.text('+1 (555) 123-4567 | [email protected] | License No: PT-2024-5678', margin + 40, y + 31);
+            y += 45;
+
+            // Patient Information
+            doc.setFillColor(248, 250, 252);
+            doc.rect(margin, y, contentWidth, 35, 'F');
+            doc.setDrawColor(59, 130, 246);
+            doc.setLineWidth(1);
+            doc.line(margin, y, margin, y + 35);
+
+            const patientId = document.getElementById('displayPatientId').textContent;
+            const patientName = document.getElementById('displayPatientName').textContent;
+            const patientAge = document.getElementById('displayPatientAge').textContent;
+            const patientGender = document.getElementById('displayPatientGender').textContent;
+            const patientContact = document.getElementById('displayPatientContact').textContent;
+            const patientAddress = document.getElementById('displayPatientAddress').textContent;
+            const currentDate = document.getElementById('displayDate').textContent;
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(50, 50, 50);
+            doc.text('Patient Information', margin + 5, y + 8);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`ID: ${patientId}`, margin + 5, y + 14);
+            doc.text(`Name: ${patientName}`, margin + 5, y + 19);
+            doc.text(`Age: ${patientAge} years`, margin + 5, y + 24);
+            doc.text(`Gender: ${patientGender}`, margin + 5, y + 29);
+            doc.text(`Contact: ${patientContact}`, margin + 100, y + 14);
+            doc.text(`Date: ${currentDate}`, margin + 100, y + 19);
+            const addressLines = doc.splitTextToSize(`Address: ${patientAddress}`, 95);
+            doc.text(addressLines, margin + 100, y + 24);
+            y += 40;
+
+            // Prescription Content
+            const addSection = (title, content, isList = false) => {
+                if (y > pageHeight - 50) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(59, 130, 246);
+                doc.text(title, margin, y);
+                doc.setLineWidth(0.2);
+                doc.line(margin, y + 1, margin + 50, y + 1);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(50, 50, 50);
+                if (isList) {
+                    const lines = content.split('\n').filter(line => line.trim());
+                    lines.forEach((line, index) => {
+                        if (y > pageHeight - 20) {
+                            doc.addPage();
+                            y = margin;
+                        }
+                        doc.text(line, margin + 5, y + 7 + index * 5);
+                    });
+                    y += lines.length * 5 + 12;
+                } else {
+                    const splitText = doc.splitTextToSize(content, contentWidth - 10);
+                    doc.text(splitText, margin + 5, y + 7);
+                    y += splitText.length * 5 + 12;
+                }
+            };
+
+            addSection('Chief Complaint', document.getElementById('displayChiefComplaint').textContent);
+            addSection('Clinical Findings', document.getElementById('displayClinicalFindings').textContent);
+            addSection('Treatment Plan', document.getElementById('displayTreatmentPlan').textContent, true);
+            addSection('Duration', document.getElementById('displayTreatmentDuration').textContent);
+            addSection('Follow-up', document.getElementById('displayFollowUpDate').textContent);
+            addSection('Additional Notes', document.getElementById('displayAdditionalNotes').textContent);
+
+            // Signature and Instructions
+            if (y > pageHeight - 60) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(200, 200, 200);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 10;
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(50, 50, 50);
+            doc.text('Important Instructions', margin, y);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text('• Follow the prescribed exercises regularly', margin + 5, y + 6);
+            doc.text('• Apply ice/heat as directed', margin + 5, y + 11);
+            doc.text('• Contact immediately if symptoms worsen', margin + 5, y + 16);
+            doc.text('• Attend all scheduled appointments', margin + 5, y + 21);
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Dr. Sarah Johnson', pageWidth - margin - 50, y);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Physiotherapist', pageWidth - margin - 50, y + 5);
+            doc.text(`Date: ${document.getElementById('signatureDate').textContent}`, pageWidth - margin - 50, y + 10);
+            doc.line(pageWidth - margin - 50, y + 15, pageWidth - margin, y + 15);
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Generated by PhysioScript - Professional Prescription Management System', margin, pageHeight - 10);
+
+            // Save PDF
+            doc.save(`Prescription_${patientId}.pdf`);
         }
         
         // Save to localStorage
@@ -635,11 +765,8 @@
         
         // Save to Google Sheets
         async function saveToGoogleSheets(data) {
-            // Note: This requires a Google Sheets API key and proper CORS setup
-            // For now, we'll simulate the API call
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    // Simulate API call
                     if (API_KEY === 'YOUR_GOOGLE_SHEETS_API_KEY') {
                         reject(new Error('API key not configured'));
                     } else {
@@ -659,7 +786,6 @@
             
             showLoading(true);
             
-            // Search in localStorage
             const patients = JSON.parse(localStorage.getItem('patients')) || [];
             const patient = patients.find(p => p.id.toLowerCase() === patientId.toLowerCase());
             
@@ -734,7 +860,6 @@
                 return;
             }
             
-            // Populate edit form
             document.getElementById('editPatientId').value = patient.id;
             document.getElementById('editPatientName').value = patient.name;
             document.getElementById('editPatientAge').value = patient.age;
@@ -778,7 +903,6 @@
                 lastUpdated: new Date().toISOString()
             };
             
-            // Get original creation date
             const patients = JSON.parse(localStorage.getItem('patients')) || [];
             const originalPatient = patients.find(p => p.id === patientData.id);
             if (originalPatient) {
@@ -878,4 +1002,3 @@
     </script>
 </body>
 </html>
-    
