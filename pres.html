@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysioScript - Prescription Generation Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .prescription-template {
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border: 2px solid #e5e7eb;
+        }
+        
+        .doctor-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+        }
+        
+        .patient-info-section {
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .prescription-content {
+            min-height: 300px;
+        }
+        
+        .signature-section {
+            border-top: 2px solid #e5e7eb;
+            margin-top: 30px;
+            padding-top: 20px;
+        }
+        
+         {
+            body * {
+                visibility: hidden;
+            }
+            .prescription-template, .prescription-template * {
+                visibility: visible;
+            }
+            .prescription-template {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none;
+                border: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .patient-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .patient-card:hover {
+            border-left-color: #3b82f6;
+            transform: translateX(5px);
+        }
+        
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-stethoscope text-blue-600 mr-3"></i>
+                PhysioScript
+            </h1>
+            <p class="text-gray-600 text-lg">Professional Prescription Management System for Physiotherapists</p>
+        </div>
+
+        <!-- Main Navigation -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8">
+            <button onclick="showSection('newPrescription')" 
+                    class="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition-all">
+                <i class="fas fa-prescription-bottle"></i>
+                Generate Prescription
+            </button>
+            <button onclick="showSection('patientHistory')" 
+                    class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition-all">
+                <i class="fas fa-history"></i>
+                Check History
+            </button>
+        </div>
+
+        <!-- New Prescription Section -->
+        <div id="newPrescriptionSection" class="section">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-user-plus text-blue-600"></i>
+                    Patient Information
+                </h2>
+                
+                <form id="patientForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Patient Name *</label>
+                        <input type="text" id="patientName" required 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Age *</label>
+                        <input type="number" id="patientAge" required min="1" max="120"
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                        <select id="patientGender" required 
+                                class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
+                        <input type="tel" id="patientContact" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                        <textarea id="patientAddress" rows="2" 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chief Complaint *</label>
+                        <textarea id="chiefComplaint" rows="2" required 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Describe the main symptoms or issues"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Clinical Findings</label>
+                        <textarea id="clinicalFindings" rows="3" 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Assessment and examination findings"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Treatment Plan *</label>
+                        <textarea id="treatmentPlan" rows="4" required 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Prescribed exercises, therapy modalities, and treatment recommendations"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Duration of Treatment</label>
+                        <input type="text" id="treatmentDuration" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                               placeholder="e.g., 2-3 weeks, 6 sessions">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Follow-up Date</label>
+                        <input type="date" id="followUpDate" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                        <textarea id="additionalNotes" rows="2" 
+                                  class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                                  placeholder="Any additional instructions or observations"></textarea>
+                    </div>
+                </form>
+                
+                <div class="flex flex-wrap gap-4 mt-6">
+                    <button onclick="generatePrescription()" 
+                            class="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-save"></i>
+                        Save & Generate Prescription
+                    </button>
+                    <button onclick="clearForm()" 
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-eraser"></i>
+                        Clear Form
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient History Section -->
+        <div id="patientHistorySection" class="section hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-search text-green-600"></i>
+                    Patient History
+                </h2>
+                
+                <div class="flex flex-wrap gap-4 mb-6">
+                    <div class="flex-1 min-w-64">
+                        <input type="text" id="searchPatientId" 
+                               class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none" 
+                               placeholder="Enter Patient ID (e.g., PT-001)">
+                    </div>
+                    <button onclick="searchPatient()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-search"></i>
+                        Search Patient
+                    </button>
+                    <button onclick="loadAllPatients()" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-list"></i>
+                        Load All Patients
+                    </button>
+                </div>
+                
+                <div id="searchResults" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Prescription Display Section -->
+        <div id="prescriptionSection" class="section hidden">
+            <div class="prescription-template max-w-4xl mx-auto p-8" id="prescriptionTemplate">
+                <!-- Doctor Header -->
+                <div class="doctor-header p-6 rounded-t-lg">
+                    <div class="text-center">
+                        <h1 class="text-3xl font-bold mb-2">Dr. Sarah Johnson</h1>
+                        <p class="text-lg mb-1">Physiotherapist & Rehabilitation Specialist</p>
+                        <p class="text-sm opacity-90">DPT, MS in Sports Medicine</p>
+                        <div class="mt-3 text-sm">
+                            <p><i class="fas fa-map-marker-alt mr-2"></i>123 Health Center, Medical District, City 12345</p>
+                            <p><i class="fas fa-phone mr-2"></i>+1 (555) 123-4567 | <i class="fas fa-envelope mr-2"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e98d9bc79a889b8881a99981909a80868a8c879d8c9bc78a8684">[email&#160;protected]</a></p>
+                            <p><i class="fas fa-certificate mr-2"></i>License No: PT-2024-5678</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Information -->
+                <div class="patient-info-section p-4 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p><strong>Patient ID:</strong> <span id="displayPatientId"></span></p>
+                            <p><strong>Patient Name:</strong> <span id="displayPatientName"></span></p>
+                            <p><strong>Age:</strong> <span id="displayPatientAge"></span> years</p>
+                            <p><strong>Gender:</strong> <span id="displayPatientGender"></span></p>
+                        </div>
+                        <div>
+                            <p><strong>Contact:</strong> <span id="displayPatientContact"></span></p>
+                            <p><strong>Date:</strong> <span id="displayDate"></span></p>
+                            <p><strong>Address:</strong> <span id="displayPatientAddress"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prescription Content -->
+                <div class="prescription-content p-6">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 border-b pb-1">Chief Complaint:</h3>
+                        <p class="text-gray-700" id="displayChiefComplaint"></p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 border-b pb-1">Clinical Findings:</h3>
+                        <p class="text-gray-700" id="displayClinicalFindings"></p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 border-b pb-1">Treatment Plan:</h3>
+                        <div class="text-gray-700" id="displayTreatmentPlan"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2 border-b pb-1">Duration:</h3>
+                            <p class="text-gray-700" id="displayTreatmentDuration"></p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2 border-b pb-1">Follow-up:</h3>
+                            <p class="text-gray-700" id="displayFollowUpDate"></p>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 border-b pb-1">Additional Notes:</h3>
+                        <p class="text-gray-700" id="displayAdditionalNotes"></p>
+                    </div>
+                </div>
+
+                <!-- Signature Section -->
+                <div class="signature-section p-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-4">Important Instructions:</p>
+                            <ul class="text-xs text-gray-600 space-y-1">
+                                <li>• Follow the prescribed exercises regularly</li>
+                                <li>• Apply ice/heat as directed</li>
+                                <li>• Contact immediately if symptoms worsen</li>
+                                <li>• Attend all scheduled appointments</li>
+                            </ul>
+                        </div>
+                        <div class="text-center">
+                            <div class="border-t-2 border-gray-300 pt-2 mt-12 min-w-48">
+                                <p class="font-semibold">Dr. Sarah Johnson</p>
+                                <p class="text-sm text-gray-600">Physiotherapist</p>
+                                <p class="text-xs text-gray-500">Date: <span id="signatureDate"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center gap-4 mt-6 no-print">
+                <button onclick="printPrescription()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                    <i class="fas fa-print"></i>
+                    Print Prescription
+                </button>
+                <button onclick="showSection('newPrescription')" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    New Prescription
+                </button>
+                <button onclick="showSection('patientHistory')" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to History
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Patient Modal -->
+        <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Edit Patient Information</h2>
+                        <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="editPatientForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <input type="hidden" id="editPatientId">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Patient Name *</label>
+                            <input type="text" id="editPatientName" required 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Age *</label>
+                            <input type="number" id="editPatientAge" required min="1" max="120"
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                            <select id="editPatientGender" required 
+                                    class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
+                            <input type="tel" id="editPatientContact" 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                            <textarea id="editPatientAddress" rows="2" 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Chief Complaint *</label>
+                            <textarea id="editChiefComplaint" rows="2" required 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Clinical Findings</label>
+                            <textarea id="editClinicalFindings" rows="3" 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Treatment Plan *</label>
+                            <textarea id="editTreatmentPlan" rows="4" required 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Duration of Treatment</label>
+                            <input type="text" id="editTreatmentDuration" 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Follow-up Date</label>
+                            <input type="date" id="editFollowUpDate" 
+                                   class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                            <textarea id="editAdditionalNotes" rows="2" 
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                    </form>
+                    
+                    <div class="flex flex-wrap gap-4 mt-6">
+                        <button onclick="updatePatient()" 
+                                class="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-save"></i>
+                            Update & Generate Prescription
+                        </button>
+                        <button onclick="closeEditModal()" 
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg text-center">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-3xl mb-4"></i>
+                <p class="text-gray-700">Processing...</p>
+            </div>
+        </div>
+    </div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // Global variables
+        let currentPatientId = '';
+        let patientCounter = 1;
+        
+        // Google Sheets configuration
+        const SHEET_ID = '1DO9x6Xn9W2gwfNBi5fCbYj_cpuv460wWenDaU3Mu6OQ';
+        const API_KEY = 'AIzaSyD9k_24dmAnCTjl3qgvy17XsL2Yct38fdE'; // Replace with your API key
+        const SHEET_RANGE = 'Sheet1!A:M';
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('newPrescription');
+            loadPatientCounter();
+        });
+        
+        // Section management
+        function showSection(sectionName) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => section.classList.add('hidden'));
+            
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+        }
+        
+        // Generate unique patient ID
+        function generatePatientId() {
+            const id = `PT-${String(patientCounter).padStart(3, '0')}`;
+            patientCounter++;
+            localStorage.setItem('patientCounter', patientCounter);
+            return id;
+        }
+        
+        // Load patient counter from localStorage
+        function loadPatientCounter() {
+            const savedCounter = localStorage.getItem('patientCounter');
+            if (savedCounter) {
+                patientCounter = parseInt(savedCounter);
+            }
+        }
+        
+        // Clear form
+        function clearForm() {
+            document.getElementById('patientForm').reset();
+        }
+        
+        // Generate prescription
+        function generatePrescription() {
+            if (!validateForm()) return;
+            
+            showLoading(true);
+            
+            const patientData = collectFormData();
+            patientData.id = generatePatientId();
+            patientData.createdDate = new Date().toISOString().split('T')[0];
+            patientData.lastUpdated = new Date().toISOString();
+            
+            currentPatientId = patientData.id;
+            
+            // Save to localStorage (fallback)
+            saveToLocalStorage(patientData);
+            
+            // Try to save to Google Sheets
+            saveToGoogleSheets(patientData).then(() => {
+                displayPrescription(patientData);
+                showLoading(false);
+                showSection('prescription');
+            }).catch(error => {
+                console.error('Failed to save to Google Sheets:', error);
+                displayPrescription(patientData);
+                showLoading(false);
+                showSection('prescription');
+                showNotification('Data saved locally. Google Sheets integration requires API key setup.', 'warning');
+            });
+        }
+        
+        // Validate form
+        function validateForm() {
+            const required = ['patientName', 'patientAge', 'patientGender', 'chiefComplaint', 'treatmentPlan'];
+            for (let field of required) {
+                const element = document.getElementById(field);
+                if (!element.value.trim()) {
+                    showNotification(`Please fill in ${field.replace('patient', '').replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
+                    element.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Collect form data
+        function collectFormData() {
+            return {
+                name: document.getElementById('patientName').value.trim(),
+                age: document.getElementById('patientAge').value,
+                gender: document.getElementById('patientGender').value,
+                contact: document.getElementById('patientContact').value.trim(),
+                address: document.getElementById('patientAddress').value.trim(),
+                chiefComplaint: document.getElementById('chiefComplaint').value.trim(),
+                clinicalFindings: document.getElementById('clinicalFindings').value.trim(),
+                treatmentPlan: document.getElementById('treatmentPlan').value.trim(),
+                treatmentDuration: document.getElementById('treatmentDuration').value.trim(),
+                followUpDate: document.getElementById('followUpDate').value,
+                additionalNotes: document.getElementById('additionalNotes').value.trim()
+            };
+        }
+        
+        // Display prescription
+        function displayPrescription(data) {
+            const currentDate = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            document.getElementById('displayPatientId').textContent = data.id;
+            document.getElementById('displayPatientName').textContent = data.name;
+            document.getElementById('displayPatientAge').textContent = data.age;
+            document.getElementById('displayPatientGender').textContent = data.gender;
+            document.getElementById('displayPatientContact').textContent = data.contact || 'Not provided';
+            document.getElementById('displayPatientAddress').textContent = data.address || 'Not provided';
+            document.getElementById('displayDate').textContent = currentDate;
+            document.getElementById('displayChiefComplaint').textContent = data.chiefComplaint;
+            document.getElementById('displayClinicalFindings').textContent = data.clinicalFindings || 'Not specified';
+            
+            // Format treatment plan with bullet points
+            const treatmentPlan = data.treatmentPlan.split('\n').map(line => 
+                line.trim() ? `• ${line.trim()}` : ''
+            ).join('<br>');
+            document.getElementById('displayTreatmentPlan').innerHTML = treatmentPlan;
+            
+            document.getElementById('displayTreatmentDuration').textContent = data.treatmentDuration || 'As needed';
+            
+            const followUpDate = data.followUpDate ? 
+                new Date(data.followUpDate).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : 'As needed';
+            document.getElementById('displayFollowUpDate').textContent = followUpDate;
+            
+            document.getElementById('displayAdditionalNotes').textContent = data.additionalNotes || 'None';
+            document.getElementById('signatureDate').textContent = currentDate;
+        }
+        
+        // Print prescription
+        function printPrescription() {
+            window.print();
+        }
+        
+        // Save to localStorage
+        function saveToLocalStorage(data) {
+            let patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const existingIndex = patients.findIndex(p => p.id === data.id);
+            
+            if (existingIndex >= 0) {
+                patients[existingIndex] = data;
+            } else {
+                patients.push(data);
+            }
+            
+            localStorage.setItem('patients', JSON.stringify(patients));
+        }
+        
+        // Save to Google Sheets
+        async function saveToGoogleSheets(data) {
+            // Note: This requires a Google Sheets API key and proper CORS setup
+            // For now, we'll simulate the API call
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    // Simulate API call
+                    if (API_KEY === 'YOUR_GOOGLE_SHEETS_API_KEY') {
+                        reject(new Error('API key not configured'));
+                    } else {
+                        resolve();
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Search patient
+        function searchPatient() {
+            const patientId = document.getElementById('searchPatientId').value.trim();
+            if (!patientId) {
+                showNotification('Please enter a patient ID', 'warning');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // Search in localStorage
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients.find(p => p.id.toLowerCase() === patientId.toLowerCase());
+            
+            if (patient) {
+                displaySearchResults([patient]);
+            } else {
+                displaySearchResults([]);
+                showNotification('Patient not found', 'error');
+            }
+            
+            showLoading(false);
+        }
+        
+        // Load all patients
+        function loadAllPatients() {
+            showLoading(true);
+            
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            displaySearchResults(patients);
+            
+            showLoading(false);
+        }
+        
+        // Display search results
+        function displaySearchResults(patients) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (patients.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-user-slash text-4xl mb-4"></i>
+                        <p>No patients found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsContainer.innerHTML = patients.map(patient => `
+                <div class="patient-card bg-gray-50 p-4 rounded-lg border">
+                    <div class="flex flex-wrap justify-between items-start gap-4">
+                        <div class="flex-1 min-w-64">
+                            <h3 class="font-semibold text-lg text-gray-800">${patient.name}</h3>
+                            <p class="text-gray-600">ID: ${patient.id} | Age: ${patient.age} | Gender: ${patient.gender}</p>
+                            <p class="text-gray-600">Contact: ${patient.contact || 'Not provided'}</p>
+                            <p class="text-sm text-gray-500">Created: ${patient.createdDate || 'Unknown'}</p>
+                            <p class="text-sm text-gray-700 mt-2"><strong>Chief Complaint:</strong> ${patient.chiefComplaint}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editPatient('${patient.id}')" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                            <button onclick="viewPrescription('${patient.id}')" 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Edit patient
+        function editPatient(patientId) {
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients.find(p => p.id === patientId);
+            
+            if (!patient) {
+                showNotification('Patient not found', 'error');
+                return;
+            }
+            
+            // Populate edit form
+            document.getElementById('editPatientId').value = patient.id;
+            document.getElementById('editPatientName').value = patient.name;
+            document.getElementById('editPatientAge').value = patient.age;
+            document.getElementById('editPatientGender').value = patient.gender;
+            document.getElementById('editPatientContact').value = patient.contact || '';
+            document.getElementById('editPatientAddress').value = patient.address || '';
+            document.getElementById('editChiefComplaint').value = patient.chiefComplaint;
+            document.getElementById('editClinicalFindings').value = patient.clinicalFindings || '';
+            document.getElementById('editTreatmentPlan').value = patient.treatmentPlan;
+            document.getElementById('editTreatmentDuration').value = patient.treatmentDuration || '';
+            document.getElementById('editFollowUpDate').value = patient.followUpDate || '';
+            document.getElementById('editAdditionalNotes').value = patient.additionalNotes || '';
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        
+        // Close edit modal
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+        
+        // Update patient
+        function updatePatient() {
+            if (!validateEditForm()) return;
+            
+            showLoading(true);
+            
+            const patientData = {
+                id: document.getElementById('editPatientId').value,
+                name: document.getElementById('editPatientName').value.trim(),
+                age: document.getElementById('editPatientAge').value,
+                gender: document.getElementById('editPatientGender').value,
+                contact: document.getElementById('editPatientContact').value.trim(),
+                address: document.getElementById('editPatientAddress').value.trim(),
+                chiefComplaint: document.getElementById('editChiefComplaint').value.trim(),
+                clinicalFindings: document.getElementById('editClinicalFindings').value.trim(),
+                treatmentPlan: document.getElementById('editTreatmentPlan').value.trim(),
+                treatmentDuration: document.getElementById('editTreatmentDuration').value.trim(),
+                followUpDate: document.getElementById('editFollowUpDate').value,
+                additionalNotes: document.getElementById('editAdditionalNotes').value.trim(),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            // Get original creation date
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const originalPatient = patients.find(p => p.id === patientData.id);
+            if (originalPatient) {
+                patientData.createdDate = originalPatient.createdDate;
+            }
+            
+            currentPatientId = patientData.id;
+            
+            saveToLocalStorage(patientData);
+            
+            closeEditModal();
+            displayPrescription(patientData);
+            showLoading(false);
+            showSection('prescription');
+            showNotification('Patient information updated successfully', 'success');
+        }
+        
+        // Validate edit form
+        function validateEditForm() {
+            const required = ['editPatientName', 'editPatientAge', 'editPatientGender', 'editChiefComplaint', 'editTreatmentPlan'];
+            for (let field of required) {
+                const element = document.getElementById(field);
+                if (!element.value.trim()) {
+                    showNotification(`Please fill in ${field.replace('edit', '').replace('patient', '').replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
+                    element.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // View prescription
+        function viewPrescription(patientId) {
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients.find(p => p.id === patientId);
+            
+            if (patient) {
+                currentPatientId = patientId;
+                displayPrescription(patient);
+                showSection('prescription');
+            } else {
+                showNotification('Patient not found', 'error');
+            }
+        }
+        
+        // Show/hide loading spinner
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            if (show) {
+                spinner.classList.remove('hidden');
+            } else {
+                spinner.classList.add('hidden');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white font-medium ${
+                type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' :
+                type === 'warning' ? 'bg-yellow-600' :
+                'bg-blue-600'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        'fa-info-circle'
+                    }"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Close modal on outside click
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+</html>
+    
